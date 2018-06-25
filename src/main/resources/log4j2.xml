@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="INFO">
+    <!-- 日志级别  ALL > TRACE > DEBUG > INFO > WARN > ERROR > FATAL > OFF -->
+    <properties>
+        <property name="info_file">logs/info.log</property>
+        <property name="warn_file">logs/warn.log</property>
+        <property name="error_file">logs/error.log</property>
+        <property name="log_pattern">%d{yyyy-MM-dd HH:mm:ss z} %-5level [%t] %l - %msg%xEx%n</property>
+        <property name="error_file_gz">logs//error-%d{yyyy-MM-dd}-%i.log.gz</property>
+        <property name="warn_file_gz">logs//warn-%d{yyyy-MM-dd}-%i.log.gz</property>
+        <property name="info_file_gz">logs/info-%d{yyyy-MM-dd}-%i.log.gz</property>
+        <property name="every_file_size">10MB</property><!-- 日志切割的最小单位 -->
+        <Property name="baseDir">logs</Property>
+    </properties>
+    <appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout charset="UTF-8" pattern="${log_pattern}"/>
+        </Console>
+
+        <!-- 只输出ERROR -->
+        <RollingFile name="ErrorRollingFile" fileName="${error_file}" filePattern="${error_file_gz}">
+            <PatternLayout charset="UTF-8" pattern="${log_pattern}"/>
+            <SizeBasedTriggeringPolicy size="${every_file_size}"/>
+            <Filters>
+                <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+            <!--自动删除超过90天的日志压缩文件-->
+            <DefaultRolloverStrategy>
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="*/*.log"/>
+                    <IfLastModified age="10d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <!--只输出warn-->
+        <RollingFile name="WarnRollingFile" fileName="${warn_file}" filePattern="${warn_file_gz}">
+            <PatternLayout charset="UTF-8" pattern="${log_pattern}"/>
+            <SizeBasedTriggeringPolicy size="${every_file_size}"/>
+            <Filters>
+                <!--首先要过滤不符合的日志级别，把不需要的首先DENY掉，然后再ACCEPT需要的日志级别，这个次序不能搞颠倒。-->
+                <ThresholdFilter level="error" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="warn" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+        </RollingFile>
+
+        <!-- 只输出INFO -->
+        <RollingFile name="InfoRollingFile" fileName="${info_file}" filePattern="${info_file_gz}">
+            <PatternLayout charset="UTF-8" pattern="${log_pattern}"/>
+            <SizeBasedTriggeringPolicy size="${every_file_size}"/>
+            <Filters>
+                <ThresholdFilter level="warn" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+        </RollingFile>
+
+    </appenders>
+    <loggers>
+        <!--过滤掉spring和mybatis的一些无用的DEBUG信息 -->
+        <logger name="org.springframework" level="INFO"></logger>
+        <logger name="org.mybatis" level="INFO"></logger>
+
+        <root level="INFO">
+            <Appender-ref ref="Console"/>
+            <Appender-ref ref="ErrorRollingFile"/>
+            <Appender-ref ref="WarnRollingFile"/>
+            <Appender-ref ref="InfoRollingFile"/>
+        </root>
+    </loggers>
+</configuration>
